@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@/lib/firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { Pool } from 'pg';
+
+// Initialize Firebase Admin SDK if not already initialized
+if (!getApps().length) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+  if (!projectId || !clientEmail || !privateKey) {
+    console.error('Missing Firebase Admin SDK configuration');
+    console.error('FIREBASE_PROJECT_ID:', !!projectId);
+    console.error('FIREBASE_CLIENT_EMAIL:', !!clientEmail);
+    console.error('FIREBASE_PRIVATE_KEY:', !!privateKey);
+    throw new Error('Firebase Admin SDK configuration incomplete');
+  }
+
+  initializeApp({
+    credential: cert({
+      projectId: projectId,
+      clientEmail: clientEmail,
+      privateKey: privateKey,
+    }),
+  });
+  console.log('Firebase Admin SDK initialized successfully in quotas');
+} else {
+  console.log('Firebase Admin SDK already initialized in quotas');
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,

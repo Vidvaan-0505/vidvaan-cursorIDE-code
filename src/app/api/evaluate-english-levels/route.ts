@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@/lib/firebase-admin';
+import { getAuth } from '../../../lib/firebase-admin';
 
 // PostgreSQL connection (you'll need to install pg package)
 // npm install pg @types/pg

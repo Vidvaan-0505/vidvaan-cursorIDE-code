@@ -1,18 +1,18 @@
 {
   "/_not-found/page": "/_not-found",
   "/api/debug/route": "/api/debug",
-  "/api/test/route": "/api/test",
   "/api/download-pdf/[requestId]/route": "/api/download-pdf/[requestId]",
   "/api/evaluate-english-levels-simple/route": "/api/evaluate-english-levels-simple",
   "/api/evaluate-english-levels/route": "/api/evaluate-english-levels",
-  "/api/user/quotas/route": "/api/user/quotas",
-  "/api/user/create/route": "/api/user/create",
+  "/api/test/route": "/api/test",
   "/api/user/analysis-history/route": "/api/user/analysis-history",
+  "/api/user/create/route": "/api/user/create",
+  "/api/user/quotas/route": "/api/user/quotas",
   "/favicon.ico/route": "/favicon.ico",
   "/dashboard/page": "/dashboard",
-  "/module/2/page": "/module/2",
+  "/module/1/page": "/module/1",
   "/page": "/",
   "/login/page": "/login",
-  "/module/1/page": "/module/1",
-  "/signup/page": "/signup"
+  "/signup/page": "/signup",
+  "/module/2/page": "/module/2"
 }
