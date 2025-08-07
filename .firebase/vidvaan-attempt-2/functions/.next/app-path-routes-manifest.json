@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/evaluate-english-levels/route": "/api/evaluate-english-levels",
+  "/api/debug/route": "/api/debug",
+  "/api/evaluate-english-levels-simple/route": "/api/evaluate-english-levels-simple",
+  "/api/test/route": "/api/test",
+  "/favicon.ico/route": "/favicon.ico",
+  "/dashboard/page": "/dashboard",
+  "/module/1/page": "/module/1",
+  "/login/page": "/login",
+  "/module/2/page": "/module/2",
+  "/page": "/",
+  "/signup/page": "/signup"
+}
