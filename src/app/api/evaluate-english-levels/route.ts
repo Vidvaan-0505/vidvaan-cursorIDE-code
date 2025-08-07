@@ -49,50 +49,63 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Helper function to save request with specific status
+// Helper function to check user quota
+async function checkUserQuota(userId: string): Promise<{ hasQuota: boolean; currentQuota: number }> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT english_analysis_quota FROM user_quotas WHERE user_id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      // User doesn't have a quota record - they should have been created during signup/login
+      // Return no quota to force them to sign up properly
+      return { hasQuota: false, currentQuota: 0 };
+    }
+
+    const currentQuota = result.rows[0].english_analysis_quota;
+    return { hasQuota: currentQuota > 0, currentQuota };
+  } finally {
+    client.release();
+  }
+}
+
+// Helper function to decrement user quota
+async function decrementUserQuota(userId: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      'UPDATE user_quotas SET english_analysis_quota = english_analysis_quota - 1 WHERE user_id = $1',
+      [userId]
+    );
+  } finally {
+    client.release();
+  }
+}
+
+// Helper function to save request with status
 async function saveRequestWithStatus(
-  userId: string, 
-  userEmail: string, 
-  text: string, 
-  requestId: string, 
-  timestamp: string, 
+  userId: string,
+  userEmail: string,
+  inputText: string,
+  requestId: string,
+  timestamp: string,
   status: 'yes' | 'no' | 'quota_exceeded' | 'failed'
-) {
-  const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
-  const sentenceCount = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0).length;
-  const avgWordLength = text.replace(/[^a-zA-Z]/g, '').length / wordCount || 0;
-  
-  const query = `
-    INSERT INTO english_assessments (
-      user_id, 
-      user_email, 
-      submitted_text, 
-      word_count, 
-      sentence_count, 
-      average_word_length, 
-      assessed_level, 
-      request_id,
-      client_timestamp,
-      request_processed,
-      created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-    RETURNING id
-  `;
-
-  const values = [
-    userId,
-    userEmail,
-    text,
-    wordCount,
-    sentenceCount,
-    avgWordLength.toFixed(2),
-    'Pending', // Will be updated by listener
-    requestId,
-    timestamp,
-    status
-  ];
-
-  return await pool.query(query, values);
+): Promise<any> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `INSERT INTO english_analysis_requests 
+       (user_id, user_email, input_text, request_id, created_at, request_processed, assessed_level)
+       VALUES ($1, $2, $3, $4, $5, $6, 'Pending')
+       RETURNING id`,
+      [userId, userEmail, inputText, requestId, timestamp, status]
+    );
+    return result;
+  } finally {
+    client.release();
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -125,21 +138,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Basic text analysis (you can enhance this with more sophisticated NLP)
-    const wordCount = text.split(/\s+/).filter((word: string) => word.length > 0).length;
-    const sentenceCount = text.split(/[.!?]+/).filter((sentence: string) => sentence.trim().length > 0).length;
-    const avgWordLength = text.replace(/[^a-zA-Z]/g, '').length / wordCount || 0;
-    
-    // Simple English level assessment based on text characteristics
-    let englishLevel = 'Beginner';
-    if (avgWordLength > 5 && wordCount > 50) {
-      englishLevel = 'Advanced';
-    } else if (avgWordLength > 4 && wordCount > 30) {
-      englishLevel = 'Intermediate';
-    }
-
-    // Save to PostgreSQL with 'no' status (will be processed by listener later)
+    // Check user quota first
     try {
+      const quotaCheck = await checkUserQuota(userId);
+      
+      if (!quotaCheck.hasQuota) {
+        // Save request with quota_exceeded status
+        await saveRequestWithStatus(userId, userEmail, text, requestId, timestamp, 'quota_exceeded');
+        
+        return NextResponse.json({
+          success: false,
+          error: 'No quota available',
+          message: quotaCheck.currentQuota === 0 
+            ? 'Please sign up or log in to get your free English analysis quota.'
+            : 'You have exceeded your English analysis quota. Please purchase more credits.',
+          remainingQuota: 0,
+          requestId: requestId
+        }, { status: 429 });
+      }
+
+      // Decrement quota and save request
+      await decrementUserQuota(userId);
       const result = await saveRequestWithStatus(userId, userEmail, text, requestId, timestamp, 'no');
       
       return NextResponse.json({
@@ -147,6 +166,7 @@ export async function POST(request: NextRequest) {
         assessmentId: result.rows[0].id,
         requestId: requestId,
         message: 'Text submitted successfully. Processing will be done by background listener.',
+        remainingQuota: quotaCheck.currentQuota - 1,
         timestamps: {
           client: timestamp,
           server: new Date().toISOString()

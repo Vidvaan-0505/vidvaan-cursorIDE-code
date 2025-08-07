@@ -50,6 +50,42 @@ CREATE INDEX IF NOT EXISTS idx_career_surveys_user_id ON career_surveys(user_id)
 CREATE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+-- Create user quotas table
+CREATE TABLE IF NOT EXISTS user_quotas (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) UNIQUE NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    english_analysis_quota INTEGER DEFAULT 10,
+    career_survey_quota INTEGER DEFAULT 5,
+    premium_modules_quota INTEGER DEFAULT 0,
+    total_purchases DECIMAL(10,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create enhanced English analysis requests table
+CREATE TABLE IF NOT EXISTS english_analysis_requests (
+    id SERIAL PRIMARY KEY,
+    request_id UUID DEFAULT gen_random_uuid() UNIQUE,
+    user_id VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    input_text TEXT NOT NULL,
+    gcs_file_path VARCHAR(500),
+    gcs_bucket VARCHAR(100) DEFAULT 'vidvaan-pdfs',
+    file_size BIGINT,
+    request_processed VARCHAR(20) DEFAULT 'no' CHECK (request_processed IN ('yes', 'no', 'quota_exceeded', 'failed')),
+    assessed_level VARCHAR(50) DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    processed_at TIMESTAMP,
+    expires_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days'),
+    metadata JSONB
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_english_analysis_user_id ON english_analysis_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_english_analysis_request_id ON english_analysis_requests(request_id);
+CREATE INDEX IF NOT EXISTS idx_user_quotas_user_id ON user_quotas(user_id);
+
 -- Grant necessary permissions (adjust as needed for your setup)
 -- GRANT ALL PRIVILEGES ON TABLE english_assessments TO your_db_user;
 -- GRANT ALL PRIVILEGES ON TABLE career_surveys TO your_db_user;

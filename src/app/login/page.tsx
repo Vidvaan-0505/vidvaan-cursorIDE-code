@@ -23,7 +23,31 @@ export default function LoginPage() {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
+      
+      // Login with Firebase
+      const userCredential = await login(email, password);
+      const user = userCredential.user;
+      
+      // Get the ID token for API call
+      const token = await user.getIdToken();
+      
+      // Try to create user in PostgreSQL database if they don't exist
+      const response = await fetch('/api/user/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ phone: null })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to create user in database:', errorData);
+        // Don't throw error here as Firebase login was successful
+        // The user can still use the app, and the database user will be created when they first use a feature
+      }
+      
       router.push('/dashboard');
     } catch (error: any) {
       setError('Failed to log in. Please check your credentials.');
@@ -36,7 +60,31 @@ export default function LoginPage() {
     try {
       setError('');
       setLoading(true);
-      await signInWithGoogle();
+      
+      // Sign in with Google
+      const userCredential = await signInWithGoogle();
+      const user = userCredential.user;
+      
+      // Get the ID token for API call
+      const token = await user.getIdToken();
+      
+      // Try to create user in PostgreSQL database if they don't exist
+      const response = await fetch('/api/user/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ phone: null })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to create user in database:', errorData);
+        // Don't throw error here as Firebase login was successful
+        // The user can still use the app, and the database user will be created when they first use a feature
+      }
+      
       router.push('/dashboard');
     } catch (error: any) {
       setError('Failed to sign in with Google. Please try again.');
