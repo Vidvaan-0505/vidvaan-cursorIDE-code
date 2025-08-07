@@ -1,18 +1,18 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/evaluate-english-levels-simple/route": "app/api/evaluate-english-levels-simple/route.js",
   "/api/debug/route": "app/api/debug/route.js",
   "/api/test/route": "app/api/test/route.js",
   "/api/download-pdf/[requestId]/route": "app/api/download-pdf/[requestId]/route.js",
+  "/api/evaluate-english-levels-simple/route": "app/api/evaluate-english-levels-simple/route.js",
   "/api/evaluate-english-levels/route": "app/api/evaluate-english-levels/route.js",
-  "/api/user/analysis-history/route": "app/api/user/analysis-history/route.js",
-  "/api/user/create/route": "app/api/user/create/route.js",
   "/api/user/quotas/route": "app/api/user/quotas/route.js",
+  "/api/user/create/route": "app/api/user/create/route.js",
+  "/api/user/analysis-history/route": "app/api/user/analysis-history/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/module/2/page": "app/module/2/page.js",
-  "/module/1/page": "app/module/1/page.js",
   "/page": "app/page.js",
   "/login/page": "app/login/page.js",
+  "/module/1/page": "app/module/1/page.js",
   "/signup/page": "app/signup/page.js"
 }

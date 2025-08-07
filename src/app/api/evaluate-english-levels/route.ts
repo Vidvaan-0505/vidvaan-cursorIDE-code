@@ -1,40 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-
-// Initialize Firebase Admin if not already initialized
-let firebaseApp: any;
-try {
-  if (!getApps().length) {
-    // Use environment variables directly (Firebase Functions v2)
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-    if (!projectId || !clientEmail || !privateKey) {
-      console.error('Missing Firebase Admin SDK configuration');
-      console.error('FIREBASE_PROJECT_ID:', !!projectId);
-      console.error('FIREBASE_CLIENT_EMAIL:', !!clientEmail);
-      console.error('FIREBASE_PRIVATE_KEY:', !!privateKey);
-      throw new Error('Firebase Admin SDK configuration incomplete');
-    }
-
-    firebaseApp = initializeApp({
-      credential: cert({
-        projectId: projectId,
-        clientEmail: clientEmail,
-        privateKey: privateKey,
-      }),
-    });
-    console.log('Firebase Admin SDK initialized successfully');
-  } else {
-    firebaseApp = getApps()[0];
-    console.log('Firebase Admin SDK already initialized');
-  }
-} catch (error) {
-  console.error('Failed to initialize Firebase Admin SDK:', error);
-  throw error;
-}
+import { getAuth } from '@/lib/firebase-admin';
 
 // PostgreSQL connection (you'll need to install pg package)
 // npm install pg @types/pg
@@ -121,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Verify the Firebase token
     let decodedToken;
     try {
-      const auth = getAuth(firebaseApp);
+      const auth = getAuth();
       decodedToken = await auth.verifyIdToken(token);
       console.log('Token verified successfully for user:', decodedToken.uid);
     } catch (error: any) {
