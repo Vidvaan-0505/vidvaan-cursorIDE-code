@@ -3,20 +3,37 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    // Connect to emulators in development (temporarily disabled)
-    // Uncomment when emulators are running
-    // ...(process.env.NODE_ENV === 'development' && {
-    //   projectId: 'demo-project',
-    //   databaseURL: 'http://localhost:8080?project=demo-project'
-    // })
-  });
+let firebaseApp: any;
+try {
+  if (!getApps().length) {
+    // Use environment variables directly (Firebase Functions v2)
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!projectId || !clientEmail || !privateKey) {
+      console.error('Missing Firebase Admin SDK configuration');
+      console.error('FIREBASE_PROJECT_ID:', !!projectId);
+      console.error('FIREBASE_CLIENT_EMAIL:', !!clientEmail);
+      console.error('FIREBASE_PRIVATE_KEY:', !!privateKey);
+      throw new Error('Firebase Admin SDK configuration incomplete');
+    }
+
+    firebaseApp = initializeApp({
+      credential: cert({
+        projectId: projectId,
+        clientEmail: clientEmail,
+        privateKey: privateKey,
+      }),
+    });
+    console.log('Firebase Admin SDK initialized successfully');
+  } else {
+    firebaseApp = getApps()[0];
+    console.log('Firebase Admin SDK already initialized');
+  }
+} catch (error) {
+  console.error('Failed to initialize Firebase Admin SDK:', error);
+  throw error;
 }
 
 // PostgreSQL connection (you'll need to install pg package)
@@ -91,10 +108,15 @@ export async function POST(request: NextRequest) {
     // Verify the Firebase token
     let decodedToken;
     try {
-      const auth = getAuth();
+      const auth = getAuth(firebaseApp);
       decodedToken = await auth.verifyIdToken(token);
-    } catch (error) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      console.log('Token verified successfully for user:', decodedToken.uid);
+    } catch (error: any) {
+      console.error('Token verification failed:', error);
+      return NextResponse.json({ 
+        error: 'Invalid token', 
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Authentication failed' 
+      }, { status: 401 });
     }
 
     const { text, userId, userEmail, requestId, timestamp } = await request.json();
